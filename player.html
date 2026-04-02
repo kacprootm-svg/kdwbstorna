@@ -1,0 +1,1144 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KDWB Player — słuchaj na żywo</title>
+  <meta name="description" content="KDWB Player — słuchaj na żywo, sprawdź co teraz grane, co było wcześniej i co za chwilę usłyszysz." />
+  <style>
+    :root {
+      --bg: #06080d;
+      --bg-2: #0b1322;
+      --panel: rgba(13, 18, 32, 0.88);
+      --panel-2: rgba(17, 25, 42, 0.94);
+      --line: rgba(255,255,255,.08);
+      --line-strong: rgba(41,211,255,.25);
+      --text: #f4f7fb;
+      --muted: #a7b0c3;
+      --accent: #29d3ff;
+      --accent-2: #008eaa;
+      --accent-3: #7cecff;
+      --danger: #ff5e7a;
+      --radius-xl: 28px;
+      --radius-lg: 22px;
+      --radius-md: 18px;
+      --shadow: 0 30px 80px rgba(0,0,0,.42);
+      --max: 1320px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(41,211,255,.10), transparent 24%),
+        radial-gradient(circle at top right, rgba(0,142,170,.14), transparent 22%),
+        linear-gradient(180deg, var(--bg) 0%, #05070d 52%, #07101b 100%);
+    }
+
+    a { color: inherit; text-decoration: none; }
+    img { display: block; max-width: 100%; }
+    button, input { font: inherit; }
+
+    .container {
+      width: min(calc(100% - 32px), var(--max));
+      margin: 0 auto;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      backdrop-filter: blur(14px);
+      background: rgba(6,8,13,.76);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .topbar-inner {
+      width: min(calc(100% - 32px), var(--max));
+      margin: 0 auto;
+      min-height: 78px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-weight: 900;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .brand-badge {
+      width: 46px;
+      height: 46px;
+      border-radius: 15px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #041018;
+      box-shadow: 0 16px 32px rgba(41,211,255,.16);
+      font-size: 13px;
+    }
+
+    .brand small {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: .18em;
+      margin-top: 2px;
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .nav a {
+      padding: 10px 14px;
+      border-radius: 999px;
+      color: var(--muted);
+      font-size: 14px;
+      transition: .2s ease;
+    }
+
+    .nav a:hover,
+    .nav a.active {
+      color: var(--text);
+      background: rgba(255,255,255,.06);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 13px 20px;
+      border-radius: 999px;
+      border: 0;
+      cursor: pointer;
+      font-weight: 800;
+      transition: transform .2s ease, opacity .2s ease;
+    }
+
+    .btn:hover { transform: translateY(-1px); }
+
+    .btn-primary {
+      color: #041018;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      box-shadow: 0 14px 28px rgba(41,211,255,.18);
+    }
+
+    .btn-secondary {
+      color: var(--text);
+      background: rgba(255,255,255,.05);
+      border: 1px solid var(--line);
+    }
+
+    .hero {
+      padding: 34px 0 18px;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(320px, .85fr);
+      gap: 22px;
+      align-items: stretch;
+    }
+
+    .panel {
+      border-radius: var(--radius-xl);
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255,255,255,.028), rgba(255,255,255,.01));
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      min-width: 0;
+    }
+
+    .player-shell {
+      position: relative;
+      padding: 34px;
+      min-height: 640px;
+      display: grid;
+      grid-template-columns: 320px minmax(0, 1fr);
+      gap: 28px;
+      background:
+        radial-gradient(circle at top left, rgba(41,211,255,.10), transparent 26%),
+        radial-gradient(circle at bottom right, rgba(0,142,170,.12), transparent 26%),
+        linear-gradient(180deg, rgba(5,8,15,.98), rgba(7,13,23,.96));
+    }
+
+    .player-shell::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(120deg, rgba(41,211,255,.04), transparent 36%, transparent 60%, rgba(255,255,255,.02));
+      pointer-events: none;
+    }
+
+    .art-stack,
+    .player-meta {
+      position: relative;
+      z-index: 1;
+      min-width: 0;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      width: fit-content;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--text);
+      padding: 8px 12px;
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 999px;
+      background: rgba(255,255,255,.04);
+      margin-bottom: 16px;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: var(--danger);
+      box-shadow: 0 0 0 8px rgba(255,94,122,.12);
+      animation: pulse 1.6s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.15); opacity: .72; }
+    }
+
+    .cover {
+      aspect-ratio: 1 / 1;
+      border-radius: 30px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,.08);
+      background: linear-gradient(135deg, #11253b, #06111d 65%, #0a1c25);
+      box-shadow: 0 24px 52px rgba(0,0,0,.36);
+      position: relative;
+      display: grid;
+      place-items: center;
+    }
+
+    .cover img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .cover-fallback {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      padding: 28px;
+      background:
+        radial-gradient(circle at top left, rgba(124,236,255,.18), transparent 26%),
+        linear-gradient(135deg, #102136, #05111d 68%, #0b2430);
+    }
+
+    .cover-fallback strong {
+      display: block;
+      color: rgba(255,255,255,.94);
+      font-size: 30px;
+      line-height: .95;
+      letter-spacing: .08em;
+      margin-bottom: 12px;
+    }
+
+    .cover-fallback span {
+      color: var(--muted);
+      font-size: 14px;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+    }
+
+    .player-side-info {
+      margin-top: 18px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .tiny-card {
+      border-radius: var(--radius-md);
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.035);
+      padding: 16px 18px;
+    }
+
+    .tiny-label,
+    .card-label {
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      font-size: 11px;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+
+    .tiny-card strong {
+      display: block;
+      line-height: 1.35;
+      font-size: 15px;
+    }
+
+    .hero-title {
+      margin: 0;
+      font-size: clamp(30px, 3.6vw, 54px);
+      line-height: .96;
+      max-width: 560px;
+      word-break: break-word;
+    }
+
+    .hero-copy {
+      margin: 16px 0 0;
+      max-width: 620px;
+      color: var(--muted);
+      line-height: 1.65;
+      font-size: 15px;
+    }
+
+    .status-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin: 20px 0 18px;
+    }
+
+    .status-chip {
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      padding: 10px 14px;
+      background: rgba(255,255,255,.04);
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .status-chip strong { color: var(--text); }
+
+    .now-title {
+      margin: 18px 0 6px;
+      font-size: clamp(28px, 3.2vw, 46px);
+      line-height: 1;
+      font-weight: 900;
+      word-break: break-word;
+    }
+
+    .now-artist {
+      color: var(--accent-3);
+      font-size: clamp(20px, 2.4vw, 28px);
+      font-weight: 800;
+      line-height: 1.08;
+      margin-bottom: 16px;
+      word-break: break-word;
+    }
+
+    .progress {
+      height: 10px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.04);
+      margin: 8px 0 10px;
+    }
+
+    .progress-bar {
+      width: 0;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      box-shadow: 0 0 24px rgba(41,211,255,.32);
+      transition: width .35s ease;
+    }
+
+    .progress-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 13px;
+      flex-wrap: wrap;
+    }
+
+    .controls-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin: 22px 0 0;
+    }
+
+    .controls-row .btn {
+      white-space: nowrap;
+    }
+
+    .icon-btn {
+      width: 58px;
+      height: 58px;
+      display: grid;
+      place-items: center;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.05);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 18px;
+      transition: transform .2s ease, border-color .2s ease;
+    }
+
+    .icon-btn:hover {
+      transform: translateY(-1px);
+      border-color: rgba(41,211,255,.34);
+    }
+
+    .icon-btn.primary {
+      width: 74px;
+      height: 74px;
+      font-size: 24px;
+      color: #041018;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      border: 0;
+      box-shadow: 0 18px 34px rgba(41,211,255,.2);
+    }
+
+    .volume-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.04);
+      min-width: 240px;
+    }
+
+    .volume-wrap input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .side-column {
+      display: grid;
+      gap: 18px;
+      padding: 22px;
+      background: linear-gradient(180deg, rgba(255,255,255,.028), rgba(255,255,255,.012));
+    }
+
+    .card {
+      padding: 22px;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.015));
+      box-shadow: var(--shadow);
+      min-height: 200px;
+      min-width: 0;
+    }
+
+    .card-featured {
+      border-color: var(--line-strong);
+      background: linear-gradient(180deg, rgba(41,211,255,.06), rgba(255,255,255,.014));
+    }
+
+    .track-card-title {
+      margin: 0 0 8px;
+      font-size: clamp(24px, 2.4vw, 34px);
+      line-height: 1;
+      word-break: break-word;
+    }
+
+    .track-card-artist {
+      margin: 0 0 18px;
+      font-size: 18px;
+      color: var(--accent-3);
+      font-weight: 800;
+      line-height: 1.15;
+      word-break: break-word;
+    }
+
+    .card p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.65;
+      font-size: 15px;
+    }
+
+    .cards-section {
+      padding: 8px 0 22px;
+    }
+
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .history-list {
+      display: grid;
+      gap: 14px;
+    }
+
+    .history-item {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 14px 16px;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.03);
+    }
+
+    .history-item strong {
+      display: block;
+      margin-bottom: 4px;
+      line-height: 1.2;
+      word-break: break-word;
+    }
+
+    .history-item span,
+    .history-item time {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .history-item time {
+      white-space: nowrap;
+      font-weight: 700;
+    }
+
+    .footer {
+      padding: 16px 0 52px;
+    }
+
+    .footer-box {
+      padding: 18px 22px;
+      border-radius: 20px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.03);
+      color: var(--muted);
+      line-height: 1.65;
+      font-size: 14px;
+    }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(22px);
+      transition: opacity .7s ease, transform .7s ease;
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (max-width: 1160px) {
+      .hero-grid,
+      .cards-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .player-shell {
+        grid-template-columns: 1fr;
+        min-height: auto;
+      }
+
+      .art-stack {
+        max-width: 420px;
+      }
+
+      .hero-title,
+      .hero-copy {
+        max-width: 100%;
+      }
+    }
+
+    @media (max-width: 840px) {
+      .topbar-inner {
+        flex-wrap: wrap;
+        padding: 14px 0;
+      }
+
+      .nav {
+        justify-content: flex-start;
+      }
+
+      .player-shell,
+      .side-column {
+        padding: 22px;
+      }
+
+      .controls-row {
+        align-items: stretch;
+      }
+
+      .controls-row .btn,
+      .icon-btn,
+      .icon-btn.primary {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .volume-wrap {
+        width: 100%;
+        min-width: 0;
+      }
+
+      .status-chip {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a href="index.html" class="brand" aria-label="KDWB Radio">
+        <div class="brand-badge">KDWB</div>
+        <div>
+          KDWB Radio
+          <small>player • rap • urban • edm</small>
+        </div>
+      </a>
+
+      <nav class="nav" aria-label="Główna nawigacja">
+        <a href="index.html">Radio</a>
+        <a href="player.html" class="active">Player</a>
+        <a href="ramowka.html">Ramówka</a>
+        <a href="notowanie-30-kdwb.html">30 KDWB</a>
+        <a href="newsy.html">Newsy</a>
+        <a href="muzyka.html">Muzyka</a>
+        <a href="podcasty.html">Podcasty</a>
+        <a href="kontakt.html">Kontakt</a>
+      </nav>
+
+      <a class="btn btn-primary" href="#player">▶ Słuchaj na żywo</a>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="hero reveal">
+      <div class="hero-grid">
+        <article class="panel player-shell" id="player">
+          <div class="art-stack">
+            <div class="cover">
+              <img id="coverImage" alt="Okładka aktualnie granego utworu" hidden />
+              <div class="cover-fallback" id="coverFallback">
+                <div>
+                  <strong>KDWB</strong>
+                  <span>Rap • Urban • EDM</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="player-side-info">
+              <div class="tiny-card">
+                <div class="tiny-label">Źródło</div>
+                <strong id="sourceLabel">Live stream / nowplaying.txt</strong>
+              </div>
+              <div class="tiny-card">
+                <div class="tiny-label">Teraz na antenie</div>
+                <strong id="showLabel">KDWB Live</strong>
+              </div>
+              <div class="tiny-card">
+                <div class="tiny-label">Status</div>
+                <strong id="connectionStatus">Oczekiwanie na dane</strong>
+              </div>
+            </div>
+          </div>
+
+          <div class="player-meta">
+            <div class="eyebrow"><span class="dot"></span> Na żywo teraz</div>
+            <h1 class="hero-title">Słuchaj KDWB bez przeładowań i bez bałaganu.</h1>
+            <p class="hero-copy">
+              Duży player, czytelne metadata i filtrowanie wpisów technicznych. Jingle, sweepy i elementy oprawy nie powinny udawać normalnych numerów.
+            </p>
+
+            <div class="status-row">
+              <div class="status-chip">Źródło: <strong>RadioBOSS + stream</strong></div>
+              <div class="status-chip">Format: <strong>AAC / MP3</strong></div>
+              <div class="status-chip">Aktualizacja: <strong id="lastRefresh">--:--</strong></div>
+            </div>
+
+            <div class="card-label">Teraz grane</div>
+            <h2 class="now-title" id="nowTitle">Brak danych</h2>
+            <div class="now-artist" id="nowArtist">KDWB</div>
+
+            <div class="progress">
+              <div class="progress-bar" id="progressBar"></div>
+            </div>
+            <div class="progress-meta">
+              <span id="songStart">start: --:--</span>
+              <span id="songHint">meta odświeżane automatycznie</span>
+              <span id="songEnd">koniec: --:--</span>
+            </div>
+
+            <div class="controls-row">
+              <button class="icon-btn" id="muteButton" type="button" aria-label="Wycisz">🔈</button>
+              <button class="icon-btn primary" id="playButton" type="button" aria-label="Play / Pause">▶</button>
+              <a class="btn btn-secondary" href="ramowka.html">Zobacz ramówkę</a>
+              <a class="btn btn-secondary" href="notowanie-30-kdwb.html">Sprawdź 30 KDWB</a>
+              <div class="volume-wrap">
+                <span>Głośność</span>
+                <input id="volumeRange" type="range" min="0" max="1" step="0.01" value="0.85" />
+              </div>
+            </div>
+
+            <audio id="radioAudio" preload="none" playsinline></audio>
+          </div>
+        </article>
+
+        <aside class="panel side-column">
+          <div class="card-label">Co wcześniej / teraz / za chwilę</div>
+
+          <section class="card">
+            <div class="card-label">Wcześniej grane</div>
+            <h3 class="track-card-title" id="prevTitle">Brak danych</h3>
+            <div class="track-card-artist" id="prevArtist">KDWB</div>
+            <p id="prevInfo">Poprzedni pełny numer zapisany po zmianie utworu.</p>
+          </section>
+
+          <section class="card card-featured">
+            <div class="card-label">Teraz</div>
+            <h3 class="track-card-title" id="sideNowTitle">Brak danych</h3>
+            <div class="track-card-artist" id="sideNowArtist">KDWB</div>
+            <p id="sideNowInfo">Aktualny numer przeszedł przez filtr bez wpisów technicznych.</p>
+          </section>
+
+          <section class="card">
+            <div class="card-label">Za chwilę</div>
+            <h3 class="track-card-title" id="nextTitle">Brak danych</h3>
+            <div class="track-card-artist" id="nextArtist">KDWB</div>
+            <p id="nextInfo">Następny zaakceptowany wpis z nowplaying.txt.</p>
+          </section>
+        </aside>
+      </div>
+    </section>
+
+    <section class="cards-section reveal">
+      <div class="cards-grid">
+        <article class="card">
+          <div class="card-label">Ostatnio grane</div>
+          <div class="history-list" id="historyList"></div>
+        </article>
+
+        <article class="card">
+          <div class="card-label">Jak to podpiąć</div>
+          <p>
+            Na serwerze powinny być publicznie dostępne pliki <strong>/data/nowplaying.txt</strong> oraz opcjonalnie cover, np. <strong>/data/covers/current.jpg</strong>. Ścieżka z Windowsa typu <strong>C:\\...</strong> nie zadziała bezpośrednio w przeglądarce.
+          </p>
+          <p style="margin-top:14px;">
+            `nowplaying.txt` powinien zawierać dwie linie: pierwsza to aktualny numer, druga to następny numer. Przykład: <strong>Oki - Jeżyk!</strong> i w drugiej linii <strong>Quebonafide - Benz-Dealer</strong>.
+          </p>
+        </article>
+
+        <article class="card">
+          <div class="card-label">Filtr techniczny</div>
+          <p>
+            Player ignoruje wpisy typu <strong>rapid</strong>, <strong>rapidfull</strong>, <strong>sweeper</strong>, <strong>sweep</strong>, <strong>ramp</strong>, <strong>bed</strong>, <strong>shotgun</strong>, <strong>jingle</strong>, <strong>liner</strong>, <strong>promo</strong>, <strong>opener</strong>, <strong>donut</strong>, <strong>drop</strong>, <strong>ident</strong>, <strong>reklama</strong>, <strong>autopromo</strong>.
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <footer class="footer reveal">
+      <div class="footer-box">
+        Ten plik jest przygotowany jako osobna podstrona <strong>player.html</strong>. Po Twojej stronie zostaje publikacja <strong>/data/nowplaying.txt</strong>, eksport coverów z RadioBOSS i ewentualne dopięcie dokładnego formatu pliku.
+      </div>
+    </footer>
+  </main>
+
+  <script>
+    const CONFIG = {
+      streamUrl: 'https://s4.radio.co/sfd596b256/listen',
+      nowPlayingTextUrl: '/data/nowplaying.txt',
+      coverBaseUrl: '/data/covers/',
+      refreshIntervalMs: 15000,
+      ignorePatterns: [
+        'rapid',
+        'rapidfull',
+        'sweeper',
+        'sweep',
+        'ramp',
+        'bed',
+        'shotgun',
+        'jingle',
+        'liner',
+        'promo',
+        'opener',
+        'donut',
+        'drop',
+        'ident',
+        'reklama',
+        'autopromo'
+      ]
+    };
+
+    const fallbackData = {
+      now: {
+        title: 'Brak danych',
+        artist: 'KDWB',
+        artwork: '',
+        startedAt: null,
+        show: 'KDWB Live'
+      },
+      next: {
+        title: 'Brak danych',
+        artist: 'KDWB'
+      },
+      history: []
+    };
+
+    const state = {
+      now: null,
+      next: null,
+      history: [],
+      progressTimer: null,
+      lastTrackKey: '',
+      storageKey: 'kdwb_player_history'
+    };
+
+    const el = {
+      audio: document.getElementById('radioAudio'),
+      playButton: document.getElementById('playButton'),
+      muteButton: document.getElementById('muteButton'),
+      volumeRange: document.getElementById('volumeRange'),
+      nowTitle: document.getElementById('nowTitle'),
+      nowArtist: document.getElementById('nowArtist'),
+      sideNowTitle: document.getElementById('sideNowTitle'),
+      sideNowArtist: document.getElementById('sideNowArtist'),
+      prevTitle: document.getElementById('prevTitle'),
+      prevArtist: document.getElementById('prevArtist'),
+      nextTitle: document.getElementById('nextTitle'),
+      nextArtist: document.getElementById('nextArtist'),
+      prevInfo: document.getElementById('prevInfo'),
+      nextInfo: document.getElementById('nextInfo'),
+      sideNowInfo: document.getElementById('sideNowInfo'),
+      showLabel: document.getElementById('showLabel'),
+      sourceLabel: document.getElementById('sourceLabel'),
+      connectionStatus: document.getElementById('connectionStatus'),
+      coverImage: document.getElementById('coverImage'),
+      coverFallback: document.getElementById('coverFallback'),
+      historyList: document.getElementById('historyList'),
+      lastRefresh: document.getElementById('lastRefresh'),
+      progressBar: document.getElementById('progressBar'),
+      songStart: document.getElementById('songStart'),
+      songEnd: document.getElementById('songEnd'),
+      songHint: document.getElementById('songHint')
+    };
+
+    function normalizeText(value) {
+      return (value || '')
+        .toString()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .trim();
+    }
+
+    function isIgnoredTrack(track) {
+      const haystack = normalizeText(`${track?.artist || ''} ${track?.title || ''}`);
+      if (!haystack) return true;
+      return CONFIG.ignorePatterns.some(pattern => haystack.includes(normalizeText(pattern)));
+    }
+
+    function splitSong(rawValue) {
+      if (!rawValue) return { artist: 'KDWB', title: 'Brak danych' };
+      const raw = rawValue.toString().trim();
+      const separators = [' - ', ' – ', ' — ', '|'];
+      for (const separator of separators) {
+        if (raw.includes(separator)) {
+          const [artist, ...rest] = raw.split(separator);
+          return {
+            artist: artist.trim() || 'KDWB',
+            title: rest.join(separator).trim() || 'Brak danych'
+          };
+        }
+      }
+      return { artist: 'KDWB', title: raw };
+    }
+
+    function parseNowPlayingText(rawText) {
+      const lines = (rawText || '')
+        .split(/\r?\n/)
+        .map(line => line.trim())
+        .filter(Boolean);
+
+      const cleaned = lines
+        .map(line => splitSong(line))
+        .filter(track => !isIgnoredTrack(track));
+
+      return {
+        now: cleaned[0] ? {
+          ...cleaned[0],
+          artwork: '',
+          startedAt: new Date().toISOString(),
+          show: 'KDWB Live'
+        } : fallbackData.now,
+        next: cleaned[1] ? {
+          ...cleaned[1]
+        } : fallbackData.next
+      };
+    }
+
+    function getTrackKey(track) {
+      return `${(track?.artist || '').trim()}__${(track?.title || '').trim()}`;
+    }
+
+    function slugify(value) {
+      return (value || '')
+        .toString()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+    }
+
+    function getCoverCandidates(track) {
+      const artist = slugify(track?.artist || '');
+      const title = slugify(track?.title || '');
+      const base = CONFIG.coverBaseUrl.replace(/\/$/, '');
+      const stem = [artist, title].filter(Boolean).join('-');
+      const list = [`${base}/current.jpg`, `${base}/current.png`];
+      if (stem) {
+        list.unshift(`${base}/${stem}.png`);
+        list.unshift(`${base}/${stem}.jpg`);
+      }
+      return list;
+    }
+
+    async function resolveCover(track) {
+      const candidates = getCoverCandidates(track);
+      for (const candidate of candidates) {
+        try {
+          const response = await fetch(candidate, { method: 'HEAD', cache: 'no-store' });
+          if (response.ok) return candidate;
+        } catch (error) {
+          // ignore candidate errors
+        }
+      }
+      return '';
+    }
+
+    function setCover(url) {
+      if (url) {
+        el.coverImage.src = url;
+        el.coverImage.hidden = false;
+        el.coverFallback.hidden = true;
+      } else {
+        el.coverImage.removeAttribute('src');
+        el.coverImage.hidden = true;
+        el.coverFallback.hidden = false;
+      }
+    }
+
+    function loadStoredHistory() {
+      try {
+        return JSON.parse(localStorage.getItem(state.storageKey) || '[]');
+      } catch (error) {
+        return [];
+      }
+    }
+
+    function saveStoredHistory(list) {
+      localStorage.setItem(state.storageKey, JSON.stringify(list.slice(0, 8)));
+    }
+
+    function pushPreviousTrack(track) {
+      if (!track || !track.title || track.title === 'Brak danych') return;
+      const list = loadStoredHistory();
+      const key = getTrackKey(track);
+      const withoutDuplicate = list.filter(item => getTrackKey(item) !== key);
+      const nextList = [{
+        ...track,
+        playedAt: new Date().toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })
+      }, ...withoutDuplicate];
+      saveStoredHistory(nextList);
+    }
+
+    function formatTime(dateLike) {
+      if (!dateLike) return '--:--';
+      const date = new Date(dateLike);
+      if (Number.isNaN(date.getTime())) return '--:--';
+      return date.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function renderHistory(history) {
+      const items = history.length ? history : [{ title: 'Brak zapisanej historii', artist: 'KDWB', playedAt: '--:--' }];
+      el.historyList.innerHTML = items.map(item => `
+        <div class="history-item">
+          <div>
+            <strong>${escapeHtml(item.title || 'Brak danych')}</strong>
+            <span>${escapeHtml(item.artist || 'KDWB')}</span>
+          </div>
+          <time>${escapeHtml(item.playedAt || '--:--')}</time>
+        </div>
+      `).join('');
+    }
+
+    function updateProgress() {
+      clearInterval(state.progressTimer);
+
+      function tick() {
+        const startedAt = state.now?.startedAt ? new Date(state.now.startedAt) : null;
+        if (!startedAt || Number.isNaN(startedAt.getTime())) {
+          el.progressBar.style.width = '0%';
+          el.songStart.textContent = 'start: --:--';
+          el.songEnd.textContent = 'koniec: --:--';
+          el.songHint.textContent = 'brak dokładnej długości z API';
+          return;
+        }
+
+        const now = Date.now();
+        const elapsed = Math.max(0, now - startedAt.getTime());
+        const assumedLengthMs = 3 * 60 * 1000 + 10 * 1000;
+        const progress = Math.min(100, (elapsed / assumedLengthMs) * 100);
+        const end = new Date(startedAt.getTime() + assumedLengthMs);
+
+        el.progressBar.style.width = `${progress}%`;
+        el.songStart.textContent = `start: ${formatTime(startedAt)}`;
+        el.songEnd.textContent = `koniec: ${formatTime(end)}`;
+        el.songHint.textContent = 'szacunek długości numeru';
+      }
+
+      tick();
+      state.progressTimer = setInterval(tick, 1000);
+    }
+
+    async function render(data) {
+      const incomingKey = getTrackKey(data.now);
+      if (state.lastTrackKey && incomingKey && state.lastTrackKey !== incomingKey && state.now) {
+        pushPreviousTrack(state.now);
+      }
+
+      state.now = data.now;
+      state.next = data.next;
+      state.lastTrackKey = incomingKey;
+
+      const history = loadStoredHistory();
+      const previous = history[0] || { title: 'Brak danych', artist: 'KDWB', playedAt: '--:--' };
+
+      el.nowTitle.textContent = data.now.title || 'Brak danych';
+      el.nowArtist.textContent = data.now.artist || 'KDWB';
+      el.sideNowTitle.textContent = data.now.title || 'Brak danych';
+      el.sideNowArtist.textContent = data.now.artist || 'KDWB';
+      el.prevTitle.textContent = previous.title || 'Brak danych';
+      el.prevArtist.textContent = previous.artist || 'KDWB';
+      el.nextTitle.textContent = data.next.title || 'Brak danych';
+      el.nextArtist.textContent = data.next.artist || 'KDWB';
+      el.prevInfo.textContent = previous.playedAt ? `Poprzedni pełny numer zagrany o ${previous.playedAt}.` : 'Poprzedni pełny numer zapisany po zmianie utworu.';
+      el.nextInfo.textContent = 'Następny zaakceptowany wpis z nowplaying.txt.';
+      el.sideNowInfo.textContent = 'Aktualny numer przeszedł przez filtr bez wpisów technicznych.';
+      el.showLabel.textContent = data.now.show || 'KDWB Live';
+      el.lastRefresh.textContent = new Date().toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
+      el.connectionStatus.textContent = 'Metadata zsynchronizowane';
+
+      const coverUrl = await resolveCover(data.now);
+      setCover(coverUrl);
+      renderHistory(history);
+      updateProgress();
+    }
+
+    function escapeHtml(value) {
+      return (value || '').toString()
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    async function fetchText(url) {
+      const response = await fetch(url, { cache: 'no-store' });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      return response.text();
+    }
+
+    async function refreshMetadata() {
+      try {
+        const rawText = await fetchText(CONFIG.nowPlayingTextUrl);
+        const parsed = parseNowPlayingText(rawText);
+        await render(parsed);
+      } catch (error) {
+        console.warn('Metadata fallback:', error);
+        el.connectionStatus.textContent = 'Tryb demo / fallback danych';
+        await render(fallbackData);
+      }
+    }
+
+    function setupAudio() {
+      el.audio.src = CONFIG.streamUrl;
+      el.audio.volume = Number(el.volumeRange.value);
+
+      el.playButton.addEventListener('click', async () => {
+        try {
+          if (el.audio.paused) {
+            await el.audio.play();
+            el.playButton.textContent = '❚❚';
+            el.connectionStatus.textContent = 'Odtwarzanie live';
+          } else {
+            el.audio.pause();
+            el.playButton.textContent = '▶';
+            el.connectionStatus.textContent = 'Pauza';
+          }
+        } catch (error) {
+          console.error(error);
+          el.connectionStatus.textContent = 'Nie udało się uruchomić streamu';
+        }
+      });
+
+      el.muteButton.addEventListener('click', () => {
+        el.audio.muted = !el.audio.muted;
+        el.muteButton.textContent = el.audio.muted ? '🔇' : '🔈';
+      });
+
+      el.volumeRange.addEventListener('input', () => {
+        el.audio.volume = Number(el.volumeRange.value);
+        if (el.audio.volume > 0 && el.audio.muted) {
+          el.audio.muted = false;
+          el.muteButton.textContent = '🔈';
+        }
+      });
+    }
+
+    function revealOnScroll() {
+      const reveals = document.querySelectorAll('.reveal');
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+          }
+        });
+      }, { threshold: 0.12 });
+      reveals.forEach(node => observer.observe(node));
+    }
+
+    setupAudio();
+    refreshMetadata();
+    setInterval(refreshMetadata, CONFIG.refreshIntervalMs);
+    revealOnScroll();
+  </script>
+</body>
+</html>

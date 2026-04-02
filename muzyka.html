@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KDWB — Sprawdź, co graliśmy</title>
+  <meta name="description" content="KDWB — historia emisji z radio.co, zapisywana lokalnie przez 24h, pogrupowana po godzinach." />
+  <style>
+    :root {
+      --bg: #06080d;
+      --line: rgba(255,255,255,.08);
+      --text: #f4f7fb;
+      --muted: #a8b2c7;
+      --accent: #29d3ff;
+      --accent-2: #008eaa;
+      --good: #4fd17b;
+      --radius-xl: 28px;
+      --shadow: 0 24px 70px rgba(0,0,0,.38);
+      --max: 1380px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(41,211,255,.08), transparent 24%),
+        radial-gradient(circle at top right, rgba(0,142,170,.12), transparent 22%),
+        linear-gradient(180deg, var(--bg) 0%, #05070d 56%, #08111c 100%);
+    }
+
+    a { color: inherit; text-decoration: none; }
+    button { font: inherit; }
+    img { display: block; max-width: 100%; }
+
+    .container { width: min(calc(100% - 32px), var(--max)); margin: 0 auto; }
+
+    .topbar {
+      position: sticky; top: 0; z-index: 1000;
+      backdrop-filter: blur(14px);
+      background: rgba(6,8,13,.78);
+      border-bottom: 1px solid var(--line);
+    }
+    .topbar-inner {
+      width: min(calc(100% - 32px), var(--max)); margin: 0 auto; min-height: 78px;
+      display: flex; align-items: center; justify-content: space-between; gap: 20px;
+    }
+    .brand { display:flex; align-items:center; gap:14px; font-weight:900; letter-spacing:.08em; text-transform:uppercase; }
+    .brand-badge {
+      width:46px; height:46px; border-radius:15px; display:grid; place-items:center;
+      background:linear-gradient(135deg,var(--accent),var(--accent-2)); color:#041018;
+      box-shadow:0 16px 32px rgba(41,211,255,.16); font-size:13px;
+    }
+    .brand small { display:block; color:var(--muted); font-size:11px; letter-spacing:.18em; margin-top:2px; }
+    .nav { display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:center; }
+    .nav a { padding:10px 14px; border-radius:999px; color:var(--muted); font-size:14px; transition:.2s ease; }
+    .nav a:hover, .nav a.active { color:var(--text); background:rgba(255,255,255,.06); }
+    .btn {
+      display:inline-flex; align-items:center; justify-content:center; gap:10px; padding:13px 20px;
+      border-radius:999px; border:0; cursor:pointer; font-weight:800; transition:transform .2s ease;
+    }
+    .btn:hover { transform:translateY(-1px); }
+    .btn-primary { color:#041018; background:linear-gradient(135deg,var(--accent),var(--accent-2)); box-shadow:0 14px 28px rgba(41,211,255,.18); }
+    .btn-secondary { color:var(--text); background:rgba(255,255,255,.05); border:1px solid var(--line); }
+
+    .hero { padding: 34px 0 20px; }
+    .hero-box {
+      padding: 32px; border-radius: var(--radius-xl); border: 1px solid var(--line);
+      background: radial-gradient(circle at top left, rgba(41,211,255,.08), transparent 22%), linear-gradient(180deg, rgba(255,255,255,.025), rgba(255,255,255,.01));
+      box-shadow: var(--shadow);
+    }
+    .eyebrow {
+      display:inline-flex; align-items:center; gap:8px; width:fit-content; font-size:12px; font-weight:800;
+      letter-spacing:.12em; text-transform:uppercase; color:var(--text); padding:8px 12px; border:1px solid rgba(255,255,255,.1);
+      border-radius:999px; background:rgba(255,255,255,.04); margin-bottom:16px;
+    }
+    .hero h1 { margin:0; font-size:clamp(34px,4.2vw,64px); line-height:.96; max-width:920px; }
+    .hero p { margin:16px 0 0; color:var(--muted); line-height:1.7; font-size:16px; max-width:900px; }
+
+    .section { padding: 0 0 24px; }
+    .panel {
+      border-radius: var(--radius-xl); border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255,255,255,.028), rgba(255,255,255,.01));
+      box-shadow: var(--shadow); overflow: hidden;
+    }
+    .panel-head {
+      padding: 22px 24px; display:flex; align-items:center; justify-content:space-between; gap:18px;
+      border-bottom: 1px solid var(--line);
+    }
+    .panel-head h2 { margin:0; font-size:28px; line-height:1; }
+    .panel-head p { margin:8px 0 0; color:var(--muted); font-size:14px; line-height:1.6; }
+
+    .hour-tabs {
+      display:flex; gap:12px; padding:20px 24px 0; overflow:auto; scrollbar-width:thin;
+    }
+    .hour-tab {
+      flex:0 0 auto; min-width:168px; padding:14px 16px; border-radius:18px; border:1px solid var(--line);
+      background:rgba(255,255,255,.04); color:var(--text); cursor:pointer; text-align:left;
+    }
+    .hour-tab.active { border-color: rgba(41,211,255,.28); background: rgba(41,211,255,.10); box-shadow: inset 0 0 0 1px rgba(41,211,255,.16); }
+    .hour-tab strong { display:block; font-size:16px; line-height:1.2; margin-bottom:4px; }
+    .hour-tab span { color:var(--muted); font-size:13px; line-height:1.4; }
+
+    .hour-summary { padding:20px 24px 0; color:var(--muted); font-size:15px; line-height:1.6; }
+
+    .playlist-list { display:grid; gap:16px; padding:20px; }
+    .playlist-item {
+      display:grid; grid-template-columns:88px 220px minmax(0,1fr) auto; gap:18px; align-items:center;
+      padding:16px; border-radius:22px; border:1px solid rgba(255,255,255,.08);
+      background:linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.018)); position:relative;
+    }
+    .playlist-item.playing { box-shadow: 0 0 0 1px rgba(41,211,255,.32), 0 0 40px rgba(41,211,255,.12); }
+    .time-pill {
+      display:grid; place-items:center; min-height:58px; padding:10px 12px; border-radius:16px;
+      background:rgba(255,255,255,.05); border:1px solid var(--line); font-weight:900; font-size:18px;
+    }
+    .cover {
+      width:100%; aspect-ratio:16/9; min-height:132px; border-radius:18px; overflow:hidden; border:1px solid var(--line);
+      background:linear-gradient(135deg,#10243a,#07121f 70%,#0a2230); display:grid; place-items:center;
+      color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.12em; text-align:center;
+    }
+    .cover img { width:100%; height:100%; object-fit:cover; object-position:center 60%; transform:scale(1.12); }
+    .track-main { min-width:0; }
+    .track-title { margin:0 0 8px; font-size:clamp(22px,2.3vw,32px); line-height:1.05; font-weight:900; word-break:break-word; }
+    .track-subtitle { color:var(--muted); font-size:17px; line-height:1.45; margin-bottom:12px; word-break:break-word; }
+    .track-meta { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+    .badge {
+      display:inline-flex; align-items:center; justify-content:center; min-width:92px; padding:10px 12px; border-radius:999px;
+      border:1px solid var(--line); background:rgba(255,255,255,.04); font-weight:800; font-size:13px;
+    }
+    .badge.live { color:var(--good); }
+    .badge.recent { color:var(--accent); }
+    .actions { display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
+    .action-btn {
+      border:1px solid var(--line); background:rgba(255,255,255,.05); color:var(--text); border-radius:14px;
+      padding:10px 14px; font-weight:800; cursor:pointer; min-width:48px;
+    }
+    .play-btn.playing { background: rgba(41,211,255,.16); color:#dffbff; border-color: rgba(41,211,255,.30); }
+    .speaker {
+      display:none; align-items:center; gap:6px; color:var(--accent); font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.12em;
+    }
+    .speaker.visible { display:inline-flex; }
+    .bars { display:flex; align-items:flex-end; gap:3px; height:14px; }
+    .bars span { width:3px; border-radius:999px; background:var(--accent); animation:bounce 1s infinite ease-in-out; }
+    .bars span:nth-child(1){height:6px;} .bars span:nth-child(2){height:12px;animation-delay:.1s;} .bars span:nth-child(3){height:8px;animation-delay:.2s;}
+    @keyframes bounce { 0%,100%{transform:scaleY(.7);opacity:.7;} 50%{transform:scaleY(1.15);opacity:1;} }
+    .loading, .empty { padding:26px 24px 28px; color:var(--muted); font-size:15px; line-height:1.6; }
+
+    @media (max-width:980px){
+      .playlist-item{grid-template-columns:88px 1fr;}
+      .cover,.track-main,.actions{grid-column:2;}
+      .actions{justify-content:flex-start;}
+    }
+    @media (max-width:860px){
+      .topbar-inner{flex-wrap:wrap;padding:14px 0;}
+      .nav{justify-content:flex-start;}
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a href="index.html" class="brand" aria-label="KDWB Radio">
+        <div class="brand-badge">KDWB</div>
+        <div>KDWB Radio<small>playlista • historia emisji</small></div>
+      </a>
+      <nav class="nav" aria-label="Główna nawigacja">
+        <a href="index.html">Radio</a>
+        <a href="player.html">Player</a>
+        <a href="ramowka.html">Ramówka</a>
+        <a href="notowanie-30-kdwb.html">30 KDWB</a>
+        <a href="newsy.html">Newsy</a>
+        <a href="muzyka.html" class="active">Sprawdź, co graliśmy</a>
+        <a href="podcasty.html">Podcasty</a>
+        <a href="kontakt.html">Kontakt</a>
+      </nav>
+      <a class="btn btn-primary" href="#historia">Historia emisji</a>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <div class="hero-box">
+        <div class="eyebrow">Historia emisji • radio.co + localStorage</div>
+        <h1>Sprawdź, co graliśmy na antenie KDWB.</h1>
+        <p>Ta wersja pobiera historię i aktualny utwór z radio.co, filtruje wpisy techniczne i zapisuje prawdziwe numery lokalnie na 24 godziny. Zakładki zaczynają się od aktualnej godziny jako pierwszej i mają podpis „Dzisiaj”.</p>
+      </div>
+    </section>
+
+    <section class="section" id="historia">
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Playlista KDWB</h2>
+            <p>Aktualna godzina zawsze jest pierwsza, a utwór zapisuje się od razu po wykryciu, bez czekania na zmianę na następny numer.</p>
+          </div>
+          <div class="btn btn-secondary" style="cursor:default;">24h lokalnej historii</div>
+        </div>
+        <div class="hour-tabs" id="hourTabs"></div>
+        <div class="hour-summary" id="hourSummary">Ładowanie historii...</div>
+        <div class="playlist-list" id="playlistList"></div>
+        <div class="loading" id="loadingState">Pobieram historię z radio.co...</div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const STATION_ID = 'sfd596b256';
+    const HISTORY_URL = `https://public.radio.co/api/v2/${STATION_ID}/track/history`;
+    const CURRENT_URL = `https://public.radio.co/api/v2/${STATION_ID}/track/current`;
+    const AUDIO_ID = 'kdwb-playlist-hook-player';
+    const STORAGE_KEY = 'kdwb_playlist_24h';
+    const REFRESH_MS = 20000;
+    const IGNORE_PATTERNS = ['rapid','rapidfull','bed','sweeper','sweep','ramp','shotgun','promo','jingle','donut','liner','opener','ident','autopromo','reklama','nowosc','news','serwis'];
+
+    let groupedByHour = {};
+    let activeHour = null;
+
+    function normalizeText(value) {
+      return (value || '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+    }
+    function fixBrokenPolish(text) {
+      return (text || '')
+        .replace(/£/g, 'Ł').replace(/³/g, 'ł').replace(/¥/g, 'Ą').replace(/¹/g, 'ą')
+        .replace(/Ê/g, 'Ę').replace(/ê/g, 'ę').replace(/Œ/g, 'Ś').replace(/œ/g, 'ś')
+        .replace(/¯/g, 'Ż').replace(/¿/g, 'ż').replace(/Æ/g, 'Ć').replace(/æ/g, 'ć')
+        .replace(/Ñ/g, 'Ń').replace(/ñ/g, 'ń');
+    }
+    function slugify(value) {
+      return (value || '').toString()
+        .replace(/Ą/g,'A').replace(/ą/g,'a').replace(/Ć/g,'C').replace(/ć/g,'c')
+        .replace(/Ę/g,'E').replace(/ę/g,'e').replace(/Ł/g,'L').replace(/ł/g,'l')
+        .replace(/Ń/g,'N').replace(/ń/g,'n').replace(/Ó/g,'O').replace(/ó/g,'o')
+        .replace(/Ś/g,'S').replace(/ś/g,'s').replace(/Ż/g,'Z').replace(/ż/g,'z')
+        .replace(/Ź/g,'Z').replace(/ź/g,'z')
+        .normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase()
+        .replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'');
+    }
+    function imageCandidates(title) {
+      const stem = slugify(title);
+      return [`${stem}.png`, `${stem}.jpg`];
+    }
+    function audioPath(title) {
+      return `${slugify(title)}.mp3`;
+    }
+    function splitTrack(item) {
+      const rawArtist = fixBrokenPolish((item.track_artist || '').trim());
+      const rawTitle = fixBrokenPolish((item.track_title || '').trim());
+      if (rawArtist || rawTitle) {
+        return { artist: rawArtist || 'Nieznany artysta', title: rawTitle || fixBrokenPolish(item.title || 'Bez tytułu') };
+      }
+      const raw = fixBrokenPolish((item.title || '').trim());
+      const separators = [' - ', ' – ', ' — '];
+      for (const sep of separators) {
+        if (raw.includes(sep)) {
+          const [artist, ...rest] = raw.split(sep);
+          return { artist: artist.trim() || 'Nieznany artysta', title: rest.join(sep).trim() || 'Bez tytułu' };
+        }
+      }
+      return { artist: 'Nieznany artysta', title: raw || 'Bez tytułu' };
+    }
+    function isIgnoredParsed(parsed) {
+      const haystack = normalizeText(`${parsed.artist} ${parsed.title}`);
+      return IGNORE_PATTERNS.some(pattern => haystack.includes(pattern));
+    }
+    function toPolishTime(isoString) {
+      const date = new Date(isoString);
+      return date.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit', hour12: false });
+    }
+    function hourKeyFromDate(date) {
+      const hour = String(date.getHours()).padStart(2, '0');
+      return `${hour}:00 - ${hour}:59`;
+    }
+    function toHourKey(isoString) {
+      return hourKeyFromDate(new Date(isoString));
+    }
+    function loadStoredPlaylist() {
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
+      catch (error) { return []; }
+    }
+    function saveStoredPlaylist(list) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+    }
+    function pruneOldEntries(list) {
+      const dayAgo = Date.now() - 24 * 60 * 60 * 1000;
+      return list.filter(item => new Date(item.start_time).getTime() >= dayAgo);
+    }
+    function entryKey(item) {
+      return `${item.start_time}__${normalizeText(item.artist)}__${normalizeText(item.title)}`;
+    }
+    function mergeIntoStorage(rawItems) {
+      const existing = pruneOldEntries(loadStoredPlaylist());
+      const existingKeys = new Set(existing.map(entryKey));
+      const normalized = rawItems
+        .map(item => {
+          const parsed = splitTrack(item);
+          return {
+            start_time: item.start_time,
+            artist: parsed.artist,
+            title: parsed.title,
+            source: item.source || 'radio.co'
+          };
+        })
+        .filter(item => !isIgnoredParsed(item));
+      normalized.forEach(item => {
+        const key = entryKey(item);
+        if (!existingKeys.has(key)) {
+          existing.push(item);
+          existingKeys.add(key);
+        }
+      });
+      existing.sort((a,b) => new Date(b.start_time) - new Date(a.start_time));
+      const pruned = pruneOldEntries(existing);
+      saveStoredPlaylist(pruned);
+      return pruned;
+    }
+    function buildOrderedHours() {
+      const now = new Date();
+      const currentHour = now.getHours();
+      const keys = [];
+      for (let offset = 0; offset < 24; offset += 1) {
+        const hour = (currentHour - offset + 24) % 24;
+        const hh = String(hour).padStart(2, '0');
+        keys.push(`${hh}:00 - ${hh}:59`);
+      }
+      return keys;
+    }
+    function buildAllHourGroups(items) {
+      const orderedHours = buildOrderedHours();
+      const result = {};
+      orderedHours.forEach(key => { result[key] = []; });
+      items.forEach(item => {
+        const key = toHourKey(item.start_time);
+        if (result[key]) result[key].push(item);
+      });
+      Object.keys(result).forEach(key => {
+        result[key].sort((a,b) => new Date(b.start_time) - new Date(a.start_time));
+      });
+      return result;
+    }
+    function renderTabs() {
+      const tabs = document.getElementById('hourTabs');
+      const hourKeys = Object.keys(groupedByHour);
+      const firstKey = hourKeys[0];
+      tabs.innerHTML = hourKeys.map(key => `
+        <button class="hour-tab ${key === activeHour ? 'active' : ''}" data-hour="${key}">
+          <strong>${key}</strong>
+          <span>${key === firstKey ? 'Dzisiaj' : groupedByHour[key].length + ' utworów'}</span>
+        </button>
+      `).join('');
+    }
+    function renderCover(title) {
+      const [pngSrc, jpgSrc] = imageCandidates(title || '');
+      return `<div class="cover"><img src="${pngSrc}" alt="${title || ''}" onerror="if(this.dataset.fallback!=='1'){this.dataset.fallback='1';this.src='${jpgSrc}';}else{this.remove();this.parentElement.textContent='BRAK OKŁADKI';}" /></div>`;
+    }
+    function renderSpeaker() {
+      return `<span class="speaker"><span class="bars"><span></span><span></span><span></span></span>gra</span>`;
+    }
+    function playHook(path, sourceButton) {
+      let audio = document.getElementById(AUDIO_ID);
+      if (!audio) {
+        audio = document.createElement('audio');
+        audio.id = AUDIO_ID;
+        document.body.appendChild(audio);
+      }
+      document.querySelectorAll('.playlist-item').forEach(card => card.classList.remove('playing'));
+      document.querySelectorAll('.speaker').forEach(node => node.classList.remove('visible'));
+      document.querySelectorAll('.play-btn').forEach(btn => btn.classList.remove('playing'));
+      const card = sourceButton.closest('.playlist-item');
+      const speaker = card ? card.querySelector('.speaker') : null;
+      if (audio.src.endsWith(path) && !audio.paused) {
+        audio.pause();
+        return;
+      }
+      audio.src = path;
+      audio.currentTime = 0;
+      audio.play().then(() => {
+        if (card) card.classList.add('playing');
+        if (speaker) speaker.classList.add('visible');
+        sourceButton.classList.add('playing');
+      }).catch(() => {
+        alert('Nie udało się odtworzyć hooka. Sprawdź, czy plik MP3 istnieje w folderze strony.');
+      });
+      audio.onended = () => {
+        if (card) card.classList.remove('playing');
+        if (speaker) speaker.classList.remove('visible');
+        sourceButton.classList.remove('playing');
+      };
+      audio.onpause = () => {
+        if (card) card.classList.remove('playing');
+        if (speaker) speaker.classList.remove('visible');
+        sourceButton.classList.remove('playing');
+      };
+    }
+    function renderPlaylist() {
+      const summary = document.getElementById('hourSummary');
+      const list = document.getElementById('playlistList');
+      const songs = groupedByHour[activeHour] || [];
+      summary.textContent = `Lista utworów zagranych na antenie KDWB w godzinie ${activeHour}.`;
+      if (!songs.length) {
+        list.innerHTML = `<div class="empty">Brak zapisanych prawdziwych utworów w tej godzinie.</div>`;
+        return;
+      }
+      list.innerHTML = songs.map((song, index) => `
+        <article class="playlist-item">
+          <div class="time-pill">${toPolishTime(song.start_time)}</div>
+          ${renderCover(song.title)}
+          <div class="track-main">
+            <h3 class="track-title">${song.artist}</h3>
+            <div class="track-subtitle">${song.title}</div>
+            <div class="track-meta">
+              <span class="badge ${index === 0 && activeHour === Object.keys(groupedByHour)[0] ? 'live' : 'recent'}">${index === 0 && activeHour === Object.keys(groupedByHour)[0] ? 'teraz / ostatnio' : 'grane'}</span>
+              ${renderSpeaker()}
+            </div>
+          </div>
+          <div class="actions">
+            <button class="action-btn play-btn" data-play="${audioPath(song.title)}">▶</button>
+          </div>
+        </article>
+      `).join('');
+    }
+    function bindActions() {
+      document.querySelectorAll('[data-hour]').forEach(button => {
+        button.addEventListener('click', () => {
+          activeHour = button.getAttribute('data-hour');
+          renderTabs();
+          renderPlaylist();
+          bindActions();
+        });
+      });
+      document.querySelectorAll('[data-play]').forEach(button => {
+        button.addEventListener('click', () => playHook(button.getAttribute('data-play'), button));
+      });
+    }
+    async function fetchJson(url) {
+      const response = await fetch(url, { cache: 'no-store' });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return response.json();
+    }
+    async function refreshHistory() {
+      const loading = document.getElementById('loadingState');
+      try {
+        const [historyPayload, currentPayload] = await Promise.all([
+          fetchJson(HISTORY_URL),
+          fetchJson(CURRENT_URL)
+        ]);
+        const historyItems = Array.isArray(historyPayload.data) ? historyPayload.data : [];
+        const currentItem = currentPayload && currentPayload.data ? [{
+          ...currentPayload.data,
+          track_artist: currentPayload.data.track_artist,
+          track_title: currentPayload.data.track_title,
+          title: currentPayload.data.title,
+          start_time: currentPayload.data.start_time,
+          source: 'current'
+        }] : [];
+        const merged = mergeIntoStorage([...currentItem, ...historyItems]);
+        groupedByHour = buildAllHourGroups(merged);
+        activeHour = Object.keys(groupedByHour)[0];
+        renderTabs();
+        renderPlaylist();
+        bindActions();
+        loading.style.display = 'none';
+      } catch (error) {
+        const fallback = pruneOldEntries(loadStoredPlaylist());
+        groupedByHour = buildAllHourGroups(fallback);
+        activeHour = Object.keys(groupedByHour)[0];
+        renderTabs();
+        renderPlaylist();
+        bindActions();
+        loading.textContent = 'Nie udało się pobrać świeżych danych z radio.co. Pokazuję ostatnio zapisaną lokalną historię.';
+        console.error(error);
+      }
+    }
+    refreshHistory();
+    setInterval(refreshHistory, REFRESH_MS);
+  </script>
+</body>
+</html>
